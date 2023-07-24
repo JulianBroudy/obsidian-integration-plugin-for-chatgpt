@@ -1,9 +1,10 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional
 from datetime import datetime
+from typing import Any, Dict, List, Optional
+from uuid import uuid4
+
 from loguru import logger
 
-from services.date import to_unix_timestamp
 from datastore.datastore import DataStore
 from models.models import (
     DocumentChunk,
@@ -12,7 +13,10 @@ from models.models import (
     QueryResult,
     QueryWithEmbedding,
     DocumentChunkWithScore,
+    CommandWithContent,
+    Command
 )
+from services.date import to_unix_timestamp
 
 
 # interface for Postgres client to implement pg based Datastore providers
@@ -21,6 +25,13 @@ class PGClient(ABC):
     async def upsert(self, table: str, json: dict[str, Any]) -> None:
         """
         Takes in a list of documents and inserts them into the table.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    async def update(self, table: str, json: dict[str, Any]):
+        """
+        Takes in a table and an object and updates the table with the object.
         """
         raise NotImplementedError
 
@@ -47,10 +58,19 @@ class PGClient(ABC):
 
     @abstractmethod
     async def delete_by_filters(
-        self, table: str, filter: DocumentMetadataFilter
+            self, table: str, filter: DocumentMetadataFilter
     ) -> None:
         """
         Deletes rows in the table that match the filter.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    async def get_by_id(
+            self, table: str, id: str, columns: Optional[List[str]] = None
+    ) -> Any:
+        """
+        Get a row by id from the database.
         """
         raise NotImplementedError
 
@@ -126,6 +146,7 @@ class PgVectorDataStore(DataStore):
                     params["in_end_date"] = datetime.fromtimestamp(
                         to_unix_timestamp(query.filter.end_date)
                     )
+            logger.info(params)
             try:
                 data = await self.client.rpc("match_page_sections", params=params)
                 results: List[DocumentChunkWithScore] = []
@@ -153,10 +174,10 @@ class PgVectorDataStore(DataStore):
         return query_results
 
     async def delete(
-        self,
-        ids: Optional[List[str]] = None,
-        filter: Optional[DocumentMetadataFilter] = None,
-        delete_all: Optional[bool] = None,
+            self,
+            ids: Optional[List[str]] = None,
+            filter: Optional[DocumentMetadataFilter] = None,
+            delete_all: Optional[bool] = None,
     ) -> bool:
         """
         Removes vectors by ids, filter, or everything in the datastore.
@@ -178,4 +199,35 @@ class PgVectorDataStore(DataStore):
                 await self.client.delete_by_filters("documents", filter)
             except:
                 return False
+        return True
+
+    async def create_command(self, command: CommandWithContent) -> str:
+        """
+        Creates a command in the database.
+        Returns a dict with the command_id and the command.
+        """
+        command.id = str(uuid4())
+        logger.info("got to create command in pgvector data store. Id: " + command.id)
+        logger.info("Command: " + str(command.dict()))
+        await self.client.upsert("commands", command.dict())
+        return command.id
+
+    async def get_command(self, command_id: str) -> Command | None:
+        """
+        Queries the database for a command with the given id without the CommandContent.
+        """
+        fields = list(Command.schema().get('properties').keys())
+        data = await self.client.get_by_id("commands", command_id, fields)
+        if data:
+            return Command(**data[0])
+        else:
+            return None
+
+    async def update_command(self, command: Command) -> bool:
+        """
+        Updates the command in the database.
+        Returns whether the operation was successful.
+        """
+        logger.info("Attempting to update command in pgvector data store. Command: " + str(command))
+        await self.client.update("commands", command.dict())
         return True
