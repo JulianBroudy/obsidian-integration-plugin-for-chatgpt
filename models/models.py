@@ -1,12 +1,13 @@
-from pydantic import BaseModel
-from typing import List, Optional
 from enum import Enum
+from typing import List, Optional
+
+from pydantic import BaseModel
 
 
 class Source(str, Enum):
-    email = "email"
-    file = "file"
-    chat = "chat"
+    EMAIL = "EMAIL"
+    FILE = "FILE"
+    CHAT = "CHAT"
 
 
 class DocumentMetadata(BaseModel):
@@ -64,3 +65,35 @@ class QueryWithEmbedding(Query):
 class QueryResult(BaseModel):
     query: str
     results: List[DocumentChunkWithScore]
+
+
+class CommandStatus(str, Enum):
+    NEW = "NEW"
+    PROCESSING = "PROCESSING"
+    COMPLETED = "COMPLETED"
+    ABANDONED = "ABANDONED"
+    ERROR = "ERROR"
+
+
+class CommandType(str, Enum):
+    CREATE_NOTE = "CREATE_NOTE"
+    MODIFY_NOTE = "MODIFY_NOTE"
+    DELETE_NOTE = "DELETE_NOTE"
+
+
+class CommandContent(BaseModel):
+    text: str
+    metadata: DocumentMetadata
+
+
+class Command(BaseModel):
+    id: Optional[str]
+    status: CommandStatus = CommandStatus.NEW
+    errors: Optional[str]
+    created_at: Optional[str]
+    updated_at: Optional[str]
+
+
+class CommandWithContent(Command):
+    type: CommandType
+    content: CommandContent

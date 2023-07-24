@@ -2,7 +2,7 @@ from models.models import (
     Document,
     DocumentMetadataFilter,
     Query,
-    QueryResult,
+    QueryResult, CommandWithContent,
 )
 from pydantic import BaseModel
 from typing import List, Optional
@@ -14,6 +14,15 @@ class UpsertRequest(BaseModel):
 
 class UpsertResponse(BaseModel):
     ids: List[str]
+
+
+class CommandRequest(BaseModel):
+    command: CommandWithContent
+
+
+class CommandResponse(BaseModel):
+    id: str
+    errors: Optional[str]
 
 
 class QueryRequest(BaseModel):
