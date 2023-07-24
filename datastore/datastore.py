@@ -1,6 +1,6 @@
+import asyncio
 from abc import ABC, abstractmethod
 from typing import Dict, List, Optional
-import asyncio
 
 from models.models import (
     Document,
@@ -8,7 +8,7 @@ from models.models import (
     DocumentMetadataFilter,
     Query,
     QueryResult,
-    QueryWithEmbedding,
+    QueryWithEmbedding, CommandWithContent, Command,
 )
 from services.chunks import get_document_chunks
 from services.openai import get_embeddings
@@ -16,7 +16,7 @@ from services.openai import get_embeddings
 
 class DataStore(ABC):
     async def upsert(
-        self, documents: List[Document], chunk_token_size: Optional[int] = None
+            self, documents: List[Document], chunk_token_size: Optional[int] = None
     ) -> List[str]:
         """
         Takes in a list of documents and inserts them into the database.
@@ -47,7 +47,6 @@ class DataStore(ABC):
         Takes in a list of list of document chunks and inserts them into the database.
         Return a list of document ids.
         """
-
         raise NotImplementedError
 
     async def query(self, queries: List[Query]) -> List[QueryResult]:
@@ -73,14 +72,35 @@ class DataStore(ABC):
 
     @abstractmethod
     async def delete(
-        self,
-        ids: Optional[List[str]] = None,
-        filter: Optional[DocumentMetadataFilter] = None,
-        delete_all: Optional[bool] = None,
+            self,
+            ids: Optional[List[str]] = None,
+            filter: Optional[DocumentMetadataFilter] = None,
+            delete_all: Optional[bool] = None,
     ) -> bool:
         """
         Removes vectors by ids, filter, or everything in the datastore.
         Multiple parameters can be used at once.
         Returns whether the operation was successful.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    async def create_command(self, command: CommandWithContent) -> str:
+        """
+        Creates a command for the Obsidian plugin to execute.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    async def get_command(self, command_id: str) -> Command:
+        """
+        Creates a command for the Obsidian plugin to execute.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    async def update_command(self, command: Command) -> bool:
+        """
+        Updates a command for the Obsidian plugin to execute.
         """
         raise NotImplementedError
