@@ -1,12 +1,13 @@
 import os
-from typing import Any, List
+from enum import Enum
+from typing import Any, List, Optional
 
+from loguru import logger
 from supabase import Client
 
 from datastore.providers.pgvector_datastore import PGClient, PgVectorDataStore
 from models.models import (
-    DocumentMetadataFilter,
-)
+    DocumentMetadataFilter, )
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 assert SUPABASE_URL is not None, "SUPABASE_URL is not set"
@@ -14,7 +15,7 @@ SUPABASE_ANON_KEY = os.environ.get("SUPABASE_ANON_KEY")
 # use service role key if you want this app to be able to bypass your Row Level Security policies
 SUPABASE_SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
 assert (
-    SUPABASE_ANON_KEY is not None or SUPABASE_SERVICE_ROLE_KEY is not None
+        SUPABASE_ANON_KEY is not None or SUPABASE_SERVICE_ROLE_KEY is not None
 ), "SUPABASE_ANON_KEY or SUPABASE_SERVICE_ROLE_KEY must be set"
 
 
@@ -25,6 +26,7 @@ class SupabaseDataStore(PgVectorDataStore):
 
 
 class SupabaseClient(PGClient):
+
     def __init__(self) -> None:
         super().__init__()
         if not SUPABASE_SERVICE_ROLE_KEY:
@@ -36,10 +38,47 @@ class SupabaseClient(PGClient):
         """
         Takes in a list of documents and inserts them into the table.
         """
+
+        logger.info("Got to upsert in supabase_datastore.py")
+        logger.info("Json before conversion: " + str(json))
+        json = self._convert_object_to_serializable_json(json)
+        logger.info("Json after conversion: " + str(json))
+
         if "created_at" in json:
             json["created_at"] = json["created_at"][0].isoformat()
 
-        self.client.table(table).upsert(json).execute()
+        try:
+            self.client.table(table).upsert(json).execute()
+        except Exception as e:
+            logger.error("Got exception in supabase_datastore.py: " + str(e), e)
+
+    def _convert_object_to_serializable_json(self, data: Any) -> Any:
+        if isinstance(data, dict):
+            return {k: self._convert_object_to_serializable_json(v) for k, v in data.items() if v is not None}
+        elif isinstance(data, list):
+            return [self._convert_object_to_serializable_json(v) for v in data]
+        elif isinstance(data, Enum):
+            return data.value
+        else:
+            return data
+
+    async def update(self, table: str, json: dict[str, Any]):
+        """
+        Takes in a list of documents and inserts them into the table.
+        """
+        logger.info("Command before serializing: " + str(json))
+        json = self._convert_object_to_serializable_json(json)
+        logger.info("Command after serializing: " + str(json))
+        self.client.table(table).update(json).eq("id", json["id"]).execute()
+
+    async def get_by_id(self, table: str, id: str, columns: Optional[List[str]] = None) -> Any:
+        """
+        Get a row by id from the database.
+        """
+        if columns is None:
+            columns = ["*"]
+        response = self.client.table(table).select(",".join(columns)).eq("id", id).execute()
+        return response.data
 
     async def rpc(self, function_name: str, params: dict[str, Any]):
         """
