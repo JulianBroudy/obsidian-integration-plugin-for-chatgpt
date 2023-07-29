@@ -13,5 +13,5 @@ async def get_datastore() -> DataStore:
         case _:
             raise ValueError(
                 f"Unsupported vector database: {datastore}. "
-                f"Try one of the following: llama, pinecone, weaviate, milvus, zilliz, redis, or qdrant"
+                f"Try one of the following: supabase"
             )

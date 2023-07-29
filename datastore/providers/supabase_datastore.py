@@ -53,6 +53,9 @@ class SupabaseClient(PGClient):
             logger.error("Got exception in supabase_datastore.py: " + str(e), e)
 
     def _convert_object_to_serializable_json(self, data: Any) -> Any:
+        """
+        Converts an object to a serializable json object.
+        """
         if isinstance(data, dict):
             return {k: self._convert_object_to_serializable_json(v) for k, v in data.items() if v is not None}
         elif isinstance(data, list):

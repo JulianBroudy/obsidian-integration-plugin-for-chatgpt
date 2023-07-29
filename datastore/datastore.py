@@ -94,13 +94,13 @@ class DataStore(ABC):
     @abstractmethod
     async def get_command(self, command_id: str) -> Command:
         """
-        Creates a command for the Obsidian plugin to execute.
+        Gets an existing command.
         """
         raise NotImplementedError
 
     @abstractmethod
     async def update_command(self, command: Command) -> bool:
         """
-        Updates a command for the Obsidian plugin to execute.
+        Updates a command.
         """
         raise NotImplementedError
