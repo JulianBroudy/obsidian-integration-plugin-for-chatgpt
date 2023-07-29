@@ -1,0 +1,18 @@
+{
+  "schema_version": "v1",
+  "name_for_model": "obsidian_personal_knowledge_management_integration",
+  "name_for_human": "Obsidian Integration",
+  "description_for_model": "Plugin for searching and manipulating the user's Obsidian Vault notes. Searching is done through semantic search to find answers to questions and retrieve relevant information. Use it whenever a user asks something that might be found in their personal information. Manipulation like creating new notes, modifying existing ones, etc. is done by creating commands that the user's Obsidian vault will be executing on their local machine.",
+  "description_for_human": "Revolutionizing note-taking by integrating ChatGPT with Obsidian. Engage, question, or get summaries from your notes.",
+  "auth": {
+    "type": "none"
+  },
+  "api": {
+    "type": "openapi",
+    "url": "http://localhost:3333/.well-known/openapi.yaml"
+  },
+  "logo_url": "http://localhost:3333/.well-known/logo.png",
+  "contact_email": "Julian+ObsidianChatGPTPlugin@Broudy.io",
+  "legal_info_url": "https://github.com/JulianBroudy/obsidian-integration-plugin-for-chatgpt/blob/master/README.md"
+}
+
